@@ -1,32 +1,65 @@
-import { APITester } from "./APITester";
+// src/App.tsx
+import { useEffect } from "react";
+import axios from "axios";
+import { BrowserRouter, Route, Routes } from "react-router";
+import PageLayout from "./components/PageLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import Profile from "./pages/Profile";
+import Stocks from "./pages/Stocks";
+import { api } from "./lib/api";
+import { useAuthStore } from "./store/useAuthStore";
 import "./index.css";
 
-import logo from "./logo.svg";
-import reactLogo from "./react.svg";
-
 export function App() {
-  return (
-    <div className="max-w-7xl mx-auto p-8 text-center relative z-10">
-      <div className="flex justify-center items-center gap-8 mb-8">
-        <img
-          src={logo}
-          alt="Bun Logo"
-          className="h-24 p-6 transition-all duration-300 hover:drop-shadow-[0_0_2em_#646cffaa] scale-120"
-        />
-        <img
-          src={reactLogo}
-          alt="React Logo"
-          className="h-24 p-6 transition-all duration-300 hover:drop-shadow-[0_0_2em_#61dafbaa] animate-[spin_20s_linear_infinite]"
-        />
-      </div>
+  const { setUser, setChecking, setSessionError } = useAuthStore();
 
-      <h1 className="text-5xl font-bold my-4 leading-tight">Bun + React</h1>
-      <p>
-        Edit <code className="bg-[#1a1a1a] px-2 py-1 rounded font-mono">src/App.tsx</code> and save to test HMR
-      </p>
-      <APITester />
-    </div>
+  useEffect(() => {
+    async function checkSession() {
+      try {
+        const { data } = await api.get("/auth/me");
+        setUser(data.user);
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+          setUser(null);
+        } else {
+          setSessionError("Could not check your session. Try again.");
+        }
+      } finally {
+        setChecking(false);
+      }
+    }
+
+    checkSession();
+  }, [setUser, setChecking, setSessionError]);
+
+  return (
+    <BrowserRouter useTransitions={false}>
+      <Routes>
+        <Route element={<PageLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/stocks"
+            element={
+              <ProtectedRoute>
+                <Stocks />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App;
