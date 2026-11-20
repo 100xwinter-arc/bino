@@ -9,6 +9,7 @@
     "build": "bun run build.ts"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.108.1",
     "@types/axios": "^0.14.4",
     "axios": "^1.21.1",
     "bun-plugin-tailwind": "^0.1.2",

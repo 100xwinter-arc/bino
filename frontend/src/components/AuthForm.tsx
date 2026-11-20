@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Link, Navigate, useLocation } from "react-router";
 import { api } from "../lib/api";
 import { useAuthStore } from "../store/useAuthStore";
+import { useSignin, useSignup } from "@/hooks/useAuth";
+import { useSession } from "@/hooks/useSession";
 
 type AuthFormProps = {
   mode: "login" | "signup";
@@ -10,35 +12,24 @@ type AuthFormProps = {
 
 export default function AuthForm({ mode }: AuthFormProps) {
   const isSignup = mode === "signup";
+  const signup = useSignup();
+  const signin = useSignin();
+  const { user, error, isPending } = useSession();
 
-  const { user, checking, setUser } = useAuthStore();
+  const auth = isSignup ? signup : signin;
 
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const location = useLocation();
 
   const destination = location.state?.from ?? "/profile";
 
   async function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    setLoading(true);
-    setError("");
-
-    const body = Object.fromEntries(new FormData(event.currentTarget));
-
-    try {
-      const { data } = await api.post(isSignup ? "/auth/signup" : "/auth/signin", body);
-      setUser(data.user);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    const form = new FormData(event.currentTarget);
+    auth.mutate(form);
   }
 
 
-  if (checking) return <p className="text-zinc-400">Checking session…</p>;
+  if (isPending) return <p className="text-zinc-400">Checking session…</p>;
   if (user) return <Navigate to={destination} replace />;
 
   return (
@@ -78,10 +69,10 @@ export default function AuthForm({ mode }: AuthFormProps) {
           />
         </label>
 
-        {error && <p role="alert" className="error">{error}</p>}
+        {auth.isError && <p role="alert" className="error">{error?.message}</p>}
 
-        <button type="submit" className="btn-primary" disabled={loading}>
-          {loading ? "Please wait…" : isSignup ? "Create account" : "Log in"}
+        <button type="submit" className="btn-primary" disabled={auth.isPending}>
+          {auth.isPending ? "Please wait…" : isSignup ? "Create account" : "Log in"}
         </button>
       </form>
 

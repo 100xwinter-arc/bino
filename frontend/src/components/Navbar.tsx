@@ -3,26 +3,15 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { api } from "../lib/api";
 import { useAuthStore } from "../store/useAuthStore";
+import { useSession } from "@/hooks/useSession";
+import { useLogout } from "@/hooks/useAuth";
 
 export default function Navbar() {
-  const { user, checking, setUser } = useAuthStore();
-  const [error, setError] = useState("");
-  const [loggingOut, setLoggingOut] = useState(false);
-  const navigate = useNavigate();
+  const { user, isPending, isError, error } = useSession();
+  const logout = useLogout();
 
   async function handleLogout() {
-    setLoggingOut(true);
-    setError("");
-
-    try {
-      await api.post("/auth/logout");
-      navigate("/", { replace: true });
-      setUser(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Logout failed.");
-    } finally {
-      setLoggingOut(false);
-    }
+    logout.mutate();
   }
 
   return (
@@ -36,7 +25,7 @@ export default function Navbar() {
         <Link to="/stocks" className="nav-link">Stocks</Link>
 
         <div className="ml-auto flex flex-wrap items-center gap-4">
-          {checking ? (
+          {isPending ? (
             <span className="nav-link">Checking session…</span>
           ) : user ? (
             <>
@@ -44,9 +33,9 @@ export default function Navbar() {
               <button
                 className="btn-secondary"
                 onClick={handleLogout}
-                disabled={loggingOut}
+                disabled={logout.isPending}
               >
-                {loggingOut ? "Logging out…" : "Logout"}
+                {logout.isPending ? "Logging out…" : "Logout"}
               </button>
             </>
           ) : (
@@ -58,7 +47,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {error && <p role="alert" className="shell error pb-3">{error}</p>}
+      {isError && <p role="alert" className="shell error pb-3">{error?.message}</p>}
     </header>
   );
 }

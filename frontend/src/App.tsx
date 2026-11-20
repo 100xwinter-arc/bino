@@ -12,30 +12,14 @@ import Stocks from "./pages/Stocks";
 import { api } from "./lib/api";
 import { useAuthStore } from "./store/useAuthStore";
 import "./index.css";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useSession } from "./hooks/useSession";
 
 export function App() {
-  const { setUser, setChecking, setSessionError } = useAuthStore();
-
-  useEffect(() => {
-    async function checkSession() {
-      try {
-        const { data } = await api.get("/auth/me");
-        setUser(data.user);
-      } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
-          setUser(null);
-        } else {
-          setSessionError("Could not check your session. Try again.");
-        }
-      } finally {
-        setChecking(false);
-      }
-    }
-
-    checkSession();
-  }, [setUser, setChecking, setSessionError]);
+  const queryClient = new QueryClient();
 
   return (
+    <QueryClientProvider client={queryClient}>
     <BrowserRouter useTransitions={false}>
       <Routes>
         <Route element={<PageLayout />}>
@@ -61,5 +45,6 @@ export function App() {
         </Route>
       </Routes>
     </BrowserRouter>
+    </QueryClientProvider>
   );
 }
